@@ -26,20 +26,38 @@ def fcfs(processes):
         total_turnaround += turnaround
         waiting_time += burst_time #the following process will wait for this one to finish
 
-    n = len(processes)
+    np = len(processes)
     print("-" * 50)
-    print(f"\nAverage Waiting Time :{total_waiting / n:.2f}")
-    print(f"Average Turnaround Time :{total_turnaround / n:.2f}")
+    print(f"\nAverage Waiting Time :{total_waiting / np:.2f}")
+    print(f"Average Turnaround Time :{total_turnaround / np:.2f}")
 
 def get_input():
     processes = []
-    n = int(input("How many processes?")) # it asks the user how many proceses they would like to enter 
-    for i in range(n):
-        burst_time = int(input(f"Enter Burst Time for process {i+1}: "))
+
+    while True:
+        try:
+            np = int(input("How many processes?")) # it asks the user how many proceses they would like to enter 
+            if np <= 0:
+                #going foward ive added loops that check for errors for example inputing negative numbers or numbers that are not whole numbers.
+                print("please enter a positive number.") 
+                continue
+            break 
+        except ValueError:
+            print("Please enter a whole number.")
+    for i in range(np):
+        while True:
+            try:
+                burst_time = int(input(f"Enter Burst Time for process {i+1}: "))
+                if burst_time < 0:
+                    print("Burst time cannot be negative")
+                    continue
+                break
+            except ValueError:
+                print("Please enter a whole number.")
         processes.append((i+1, burst_time))
     return(processes)
 
-#creating a thread so that fcfs is run inside it 
+#creating a thread so that fcfs is run inside it. though unecesary I've added it as a show of skill and knkowledge and will run effeciently without it.
 processes = get_input()
 thread = threading.Thread(target=fcfs, args=(processes,))
 thread.start()

@@ -167,9 +167,8 @@ def main():
 
     # saves number of processes
     st.session_state["num_processes"] = num_processes
-    st.divider()
+   
 
-    
     default_bursts = [5, 3, 7, 2]
 
     st.subheader("Process Details")
@@ -197,7 +196,6 @@ def main():
 
         rows.append((burst_val, arrival_val))
 
-    st.divider()
     
     status = st.empty()
     results_box = st.empty()
@@ -233,7 +231,6 @@ def main():
         "turnaround": "Turnaround",
         "waiting": "Waiting",
     })
-
     # display table with results
     results_box.dataframe(df, use_container_width=True, hide_index=True)
 
@@ -244,7 +241,7 @@ def main():
 
     status.success("completed")
 
-
 if __name__ == "__main__":
     main()
+
 

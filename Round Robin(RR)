@@ -1,0 +1,250 @@
+import streamlit as st
+import pandas as pd
+
+# we use function implements the Round Robin CPU scheduling algorithm.
+
+def round_robin_scheduling(processes, arrivals, bursts, quantum):
+    n = len(processes)  
+
+   # list for how much CPU time is left for each process
+    remaining = []
+    for b in bursts:
+        remaining.append(b)
+
+    completion = [0] * n         
+    already_added = [False] * n  
+    queue = []                   
+    current_time = 0             
+    completed_count= 0           
+
+    # we adding processes that have already arrived to the queue
+    
+    for i in range(n):
+        if arrivals[i] <= current_time and not already_added[i]:
+            queue.append(i)
+            already_added[i] = True
+
+    # loop until all the processes have been run
+    while completed_count < n:
+
+        #incase the queue is empty we move the clock to the next arrival time 
+        if len(queue) == 0:
+            next_arrival_time = None
+            for i in range(n):
+                if not already_added[i]:
+                    
+                    if next_arrival_time is None or arrivals[i] < next_arrival_time:
+                        next_arrival_time = arrivals[i]
+
+            
+            if next_arrival_time is None:
+                break
+
+            # moving clock to next arrival time
+            current_time = next_arrival_time
+
+            # incase any new processes arrive they are added to the queue
+            for i in range(n):
+                if arrivals[i] <= current_time and not already_added[i]:
+                    queue.append(i)
+                    already_added[i] = True
+
+            continue 
+
+        # run process at start of queue
+        current_process = queue.pop(0)
+
+        # length of the process either quantum or remaining time 
+        if remaining[current_process] < quantum:
+            run_time = remaining[current_process]
+        else:
+            run_time = quantum
+
+        
+        current_time = current_time + run_time
+    
+        remaining[current_process] = remaining[current_process] - run_time
+
+        # adding to the queue the processes that just arrived
+        for i in range(n):
+            if arrivals[i] <= current_time and not already_added[i]:
+                queue.append(i)
+                already_added[i] = True
+
+        # when the process is not finished its pushed to the back of the queue
+        if remaining[current_process] > 0:
+            queue.append(current_process)
+        else:
+            # when process is copmletely done record time 
+            completion[current_process] = current_time
+            completed_count = completed_count + 1
+
+    # waiting and turnaround time for each process
+    results = []
+    total_waiting = 0
+    total_turnaround = 0
+
+    for i in range(n):
+       
+        turnaround = completion[i] - arrivals[i]
+        waiting = turnaround - bursts[i]
+
+        total_turnaround = total_turnaround + turnaround
+        total_waiting = total_waiting + waiting
+
+        
+        results.append({
+            "process": processes[i],
+            "arrival": arrivals[i],
+            "burst": bursts[i],
+            "completion": completion[i],
+            "turnaround": turnaround,
+            "waiting": waiting,
+        })
+
+    # averages of all the processes
+    average_waiting = total_waiting / n
+    average_turnaround = total_turnaround / n
+
+    return results, average_waiting, average_turnaround
+
+
+# function to check if what the user enters is correct and shows an error when there is a mistake 
+def validate_inputs(quantum_text, rows):
+    try:
+        quantum = int(quantum_text)  # converting text to whole number
+    except ValueError:
+        raise ValueError(f"Time Quantum must be a whole number")
+    if quantum == 0:
+        raise ValueError("Time Quantum cannot be zero")
+
+    processes = []
+    arrivals = []
+    bursts = []
+
+    process_number = 1
+    # checking burst and arrival time for each row
+    for burst_text, arrival_text in rows:
+        burst_label = "Process " + str(process_number) + ": Burst Time"
+        arrival_label = "Process " + str(process_number) + ": Arrival Time"
+
+        # burst time must be a correct one
+        try:
+            burst = int(str(burst_text))
+        except ValueError:
+            raise ValueError(f"{burst_label} must be a whole number")
+        if burst == 0:
+            raise ValueError(f"{burst_label} cannot be zero")
+
+        # arrival time should be a correct one
+        try:
+            arrival = int(str(arrival_text))
+        except ValueError:
+            raise ValueError(f"{arrival_label} must be a whole number")
+
+        # save process information
+        processes.append(process_number)
+        bursts.append(burst)
+        arrivals.append(arrival)
+
+        process_number = process_number + 1
+
+    return processes, arrivals, bursts, quantum
+
+
+# running streamlit and UI
+def main():
+    st.set_page_config(page_title="Round Robin", layout="centered")
+    st.title("Round Robin")
+
+    # number of processes and quantum user chooses
+    num_processes = st.number_input(
+        "Number of Processes:", min_value=1, max_value=10,
+        value=st.session_state.get("num_processes", 4), key="num_proc_input"
+    )
+    
+    quantum_text = st.text_input("Time Quantum:", value="2", key="quantum_input")
+
+    # saves number of processes
+    st.session_state["num_processes"] = num_processes
+    st.divider()
+
+    
+    default_bursts = [5, 3, 7, 2]
+
+    st.subheader("Process Details")
+    # columns created 
+    h1, h2, h3 = st.columns([1, 1, 1])
+    h1.markdown("**Process**")
+    h2.markdown("**Burst Time**")
+    h3.markdown("**Arrival Time**")
+
+    rows = []
+    # row for each process
+    for i in range(int(num_processes)):
+        c1, c2, c3 = st.columns([1, 1, 1])
+        c1.markdown("P" + str(i + 1))  # creates label P1,P2 and so on
+
+        # show the default burst time
+        if i < len(default_bursts):
+            default_burst = str(default_bursts[i])
+        else:
+            default_burst = ""
+
+        # boxes to enter burst and arrival times 
+        burst_val = c2.text_input("Burst Time P" + str(i + 1), value=default_burst, key="burst_" + str(i))
+        arrival_val = c3.text_input("Arrival Time P" + str(i + 1), value="0", key="arrival_" + str(i))
+
+        rows.append((burst_val, arrival_val))
+
+    st.divider()
+    
+    status = st.empty()
+    results_box = st.empty()
+    averages_box = st.empty()
+    
+    #checking if the inputs are correct
+    try:
+        processes, arrivals, bursts, quantum = validate_inputs(quantum_text, rows)
+    except ValueError as e:
+        # show error when inputs are wrong
+        status.error(str(e))
+        return
+    status.info("calculating schedule")
+
+    # Run the actual Round Robin simulation.
+    try:
+        results, avg_waiting, avg_turnaround = round_robin_scheduling(
+            processes, arrivals, bursts, quantum
+        )
+    except Exception as e:
+      
+        status.error("Error: " + str(e))
+        return
+
+    # creating table for results so user can see 
+    df = pd.DataFrame(results)
+    # renaming columns so user can see
+    df = df.rename(columns={
+        "process": "Process",
+        "arrival": "Arrival",
+        "burst": "Burst",
+        "completion": "Completion",
+        "turnaround": "Turnaround",
+        "waiting": "Waiting",
+    })
+
+    # display table with results
+    results_box.dataframe(df, use_container_width=True, hide_index=True)
+
+    #display  average waiting and turnaround times side by side.
+    avg_col1, avg_col2 = averages_box.columns(2)
+    avg_col1.markdown(f"**Average Waiting Time:** {avg_waiting:.2f}")
+    avg_col2.markdown(f"**Average Turnaround Time:** {avg_turnaround:.2f}")
+
+    status.success("completed")
+
+
+if __name__ == "__main__":
+    main()
+

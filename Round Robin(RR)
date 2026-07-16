@@ -11,24 +11,30 @@ def round_robin_scheduling(processes, arrivals, bursts, quantum):
     for b in bursts:
         remaining.append(b)
 
-    completion = [0] * n         
-    already_added = [False] * n  
-    queue = []                   
+    completion = []
+    for i in range(n):
+        completion.append(0)
+
+    already_added = []
+    for i in range(n):
+        already_added.append(False)
+
+    waiting_list = []                   
     current_time = 0             
     completed_count= 0           
 
-    # we adding processes that have already arrived to the queue
+    # we adding processes that have already arrived to the waiting_list
     
     for i in range(n):
         if arrivals[i] <= current_time and not already_added[i]:
-            queue.append(i)
+            waiting_list.append(i)
             already_added[i] = True
 
     # loop until all the processes have been run
     while completed_count < n:
 
-        #incase the queue is empty we move the clock to the next arrival time 
-        if len(queue) == 0:
+        #incase the waiting_list is empty we move the clock to the next arrival time 
+        if len(waiting_list) == 0:
             next_arrival_time = None
             for i in range(n):
                 if not already_added[i]:
@@ -43,16 +49,16 @@ def round_robin_scheduling(processes, arrivals, bursts, quantum):
             # moving clock to next arrival time
             current_time = next_arrival_time
 
-            # incase any new processes arrive they are added to the queue
+            # incase any new processes arrive they are added to the waiting_list
             for i in range(n):
                 if arrivals[i] <= current_time and not already_added[i]:
-                    queue.append(i)
+                    waiting_list.append(i)
                     already_added[i] = True
 
             continue 
 
-        # run process at start of queue
-        current_process = queue.pop(0)
+        # run process at start of waiting_list
+        current_process = waiting_list.pop(0)
 
         # length of the process either quantum or remaining time 
         if remaining[current_process] < quantum:
@@ -65,15 +71,15 @@ def round_robin_scheduling(processes, arrivals, bursts, quantum):
     
         remaining[current_process] = remaining[current_process] - run_time
 
-        # adding to the queue the processes that just arrived
+        # adding to the waiting_list the processes that just arrived
         for i in range(n):
             if arrivals[i] <= current_time and not already_added[i]:
-                queue.append(i)
+                waiting_list.append(i)
                 already_added[i] = True
 
-        # when the process is not finished its pushed to the back of the queue
+        # when the process is not finished its pushed to the back of the waiting_list
         if remaining[current_process] > 0:
-            queue.append(current_process)
+            waiting_list.append(current_process)
         else:
             # when process is copmletely done record time 
             completion[current_process] = current_time
@@ -132,7 +138,7 @@ def validate_inputs(quantum_text, rows):
         try:
             burst = int(str(burst_text))
         except ValueError:
-            raise ValueError(f"{burst_label} must be a whole number")
+            raise ValueError(f"{burst_label} a whole number")
         if burst == 0:
             raise ValueError(f"{burst_label} cannot be zero")
 
@@ -140,7 +146,7 @@ def validate_inputs(quantum_text, rows):
         try:
             arrival = int(str(arrival_text))
         except ValueError:
-            raise ValueError(f"{arrival_label} must be a whole number")
+            raise ValueError(f"{arrival_label}  a whole number")
 
         # save process information
         processes.append(process_number)
@@ -160,10 +166,10 @@ def main():
     # number of processes and quantum user chooses
     num_processes = st.number_input(
         "Number of Processes:", min_value=1, max_value=10,
-        value=st.session_state.get("num_processes", 4), key="num_proc_input"
+        value=st.session_state.get("num_processes", 4)
     )
     
-    quantum_text = st.text_input("Time Quantum:", value="2", key="quantum_input")
+    quantum_text = st.text_input("Time Quantum:", value="2")
 
     # saves number of processes
     st.session_state["num_processes"] = num_processes
@@ -191,8 +197,8 @@ def main():
             default_burst = ""
 
         # boxes to enter burst and arrival times 
-        burst_val = c2.text_input("Burst Time P" + str(i + 1), value=default_burst, key="burst_" + str(i))
-        arrival_val = c3.text_input("Arrival Time P" + str(i + 1), value="0", key="arrival_" + str(i))
+        burst_val = c2.text_input("Burst Time P" + str(i + 1), value=default_burst)
+        arrival_val = c3.text_input("Arrival Time P" + str(i + 1), value="0")
 
         rows.append((burst_val, arrival_val))
 
@@ -243,5 +249,4 @@ def main():
 
 if __name__ == "__main__":
     main()
-
 
